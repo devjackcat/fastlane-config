@@ -1,0 +1,118 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:ios)
+
+$scheme = "自己的scheme"
+$workspace = "项目名.xcworkspace"
+$bundleId = "自己的BundleId"
+$provisioningProfile_adhoc = "Adhoc描述文件"
+$provisioningProfile_release = "Release描述文件"
+
+$AppleId = "自己的AppleId"
+$ApplePwd = "上传AppStore专用密码" # 上传AppStore专用密码 https://appleid.apple.com/account/manage
+$SmsPhoneNumber = "上传时接收验证码的手机号" # 上传时接收验证码的手机号，格式+86 13811112222
+
+$pgyer_key = "蒲公英key"
+$pgyer_user_key = "蒲公英user_key"
+
+platform :ios do
+
+   desc "打 adhoc debug 测试包"
+   lane :adhoc_debug do
+     build_app(
+         scheme: $scheme,
+         workspace: $workspace,
+         include_bitcode: false,
+         configuration: "Debug",
+         silent: false,
+         include_symbols: true,
+         export_options: {
+           method: "ad-hoc",
+           signingStyle: "manual",
+           stripSwiftSymbols: true,
+           uploadBitcode: false,
+           uploadSymbols: false,
+           provisioningProfiles: {
+             $bundleId => $provisioningProfile_adhoc
+           }
+         }
+     )
+     pgyer(api_key: $pgyer_key, user_key: $pgyer_user_key)
+   end
+
+
+   desc "打 adhoc 内侧包"
+   lane :adhoc do
+     build_app(
+         scheme: $scheme,
+         workspace: $workspace,
+         include_bitcode: false,
+         configuration: "Release",
+         silent: false,
+         include_symbols: true,
+         export_options: {
+           method: "ad-hoc",
+           signingStyle: "manual",
+           stripSwiftSymbols: true,
+           uploadBitcode: false,
+           uploadSymbols: false,
+           provisioningProfiles: {
+             $bundleId => $provisioningProfile_adhoc
+           }
+         }
+     )
+     pgyer(api_key: $pgyer_key, user_key: $pgyer_user_key)
+   end
+   
+   desc "打生产包并上传至AppStore" 
+   lane :release do
+   
+     # 执行打包
+     build_app(
+         scheme: $scheme,
+         workspace: $workspace,
+         include_bitcode: false,
+         #configuration: "Release",
+         silent: false,
+         include_symbols: true,
+         clean: true,           # 执行清理
+         export_options: {
+           method: "app-store",
+           signingStyle:"manual",
+           stripSwiftSymbols:true,
+           uploadBitcode:false,
+           uploadSymbols:false,
+           provisioningProfiles: {
+             $bundleId => $provisioningProfile_release
+           }
+         }
+     )
+
+     # 设置环境变量
+     ENV["SPACESHIP_2FA_SMS_DEFAULT_PHONE_NUMBER"] = $SmsPhoneNumber
+     ENV["FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD"] = $ApplePwd
+
+     # 上传appstore
+     upload_to_app_store(
+       username: $AppleId,
+       skip_metadata: true, #跳过媒体文件上传
+       skip_screenshots: true, #跳过截图文件
+       precheck_include_in_app_purchases: false, #无需检查内购
+       ignore_language_directory_validation: false,
+       run_precheck_before_submit: false
+     ) 
+   end
+end

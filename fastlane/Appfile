@@ -1,0 +1,6 @@
+# app_identifier("这里换成自己的bundleId")
+# apple_id("自己的AppleId")
+
+
+# For more information about the Appfile, see:
+#     https://docs.fastlane.tools/advanced/#appfile
